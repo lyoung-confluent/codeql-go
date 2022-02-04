@@ -36,6 +36,20 @@ bindingset[mod, path]
 string package(string mod, string path) {
   // "\Q" and "\E" start and end a quoted section of a regular expression. Anything like "." or "*" that
   // "*" that comes between them is not interpreted as it would normally be in a regular expression.
-  result.regexpMatch("\\Q" + mod + "\\E([/.]v[^/]+)?($|/)\\Q" + path + "\\E") and
+  (
+    result.regexpMatch("\\Q" + mod + "\\E([/.]v[^/]+)?($|/)\\Q" + path + "\\E")
+    or
+    (
+      // Ex: "github.com/couchbase/gocb" should also match "gopkg.in/couchbase/gocb.v1"
+      mod.matches("github.com/%") and
+      result.regexpMatch("gopkg.in/\\Q" + mod.suffix(11) + "\\E(\\.v[0-9]+)($|/)\\Q" + path + "\\E")
+      or
+      // Ex: "github.com/go-yaml/yaml" should also match "gopkg.in/yaml.v4"
+      mod.matches("github.com/go-%") and
+      result
+          .regexpMatch("gopkg.in/\\Q" + mod.splitAt("/", 2) + "\\E(\\.v[0-9]+)($|/)\\Q" + path +
+              "\\E")
+    )
+  ) and
   result = any(Package p).getPath()
 }
